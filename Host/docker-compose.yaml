@@ -1,0 +1,14 @@
+services:
+
+  host-jetson: 
+    image: host-asus-client
+    build: 
+      context: ./src
+      dockerfile: Dockerfile
+    container_name: host-asus-client
+    volumes: 
+      - ./src/:/workspace
+      - ./results:/results
+    network_mode: host
+    env_file:
+      - .env  

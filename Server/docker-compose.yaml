@@ -1,0 +1,17 @@
+services:
+  
+  light-card: 
+    image: light-card-server
+    build: 
+      context: ./src
+      dockerfile: Dockerfile
+    container_name: light-card-server
+    runtime: nvidia
+    environment: 
+      - NVIDIA_VISIBLE_DEVICES=all
+    volumes: 
+      - ./src:/workspace
+      - ./results:/results
+    network_mode: host
+    env_file:
+      - .env  
