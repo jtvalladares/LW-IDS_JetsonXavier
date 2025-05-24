@@ -4,7 +4,7 @@ import numpy as np
 import time
 import struct
 
-class JetsonNanoClient: 
+class JetsonXavierClient: 
 
     def __init__(self, host, port, storage_file, num_regs):
         self.host = host
@@ -97,6 +97,11 @@ class JetsonNanoClient:
         other_predictions = data[:,-1]
         # Delete last two columns
         data = data[:, :-2] 
+
+        # Send test file name to select model in server
+        file_name = self.test_path.split('/')[-1]
+        self.tx_process_data({"file_name": file_name})
+        # print(f">>> [Tx] Sent file name: {file_name}")
 
         for reg in data:
             

@@ -1,11 +1,14 @@
 services:
 
-  host-jetson: 
-    image: host-asus-client
+  jetson-xavier-client: 
+    image: xavier-client
     build: 
       context: ./src
       dockerfile: Dockerfile
-    container_name: host-asus-client
+    container_name: xavier-client
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
     volumes: 
       - ./src/:/workspace
       - ./results:/results
