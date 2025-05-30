@@ -1,14 +1,11 @@
 services:
 
-  jetson-xavier-client: 
-    image: xavier-client
+  host-xavier: 
+    image: host-xavier-client
     build: 
       context: ./src
       dockerfile: Dockerfile
-    container_name: xavier-client
-    runtime: nvidia
-    environment:
-      - NVIDIA_VISIBLE_DEVICES=all
+    container_name: host-xavier-client
     volumes: 
       - ./src/:/workspace
       - ./results:/results

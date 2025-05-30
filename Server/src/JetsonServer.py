@@ -4,6 +4,9 @@ import time
 import struct
 import csv
 import numpy as np
+import tensorflow as tf
+from tensorflow.keras.models import load_model
+import tensorflow.keras.backend as K
 
 class JetsonXavierServer: 
 
@@ -38,11 +41,15 @@ class JetsonXavierServer:
             self.server_socket.close()
         print("Connection closed.")
 
-    def load_model(self, model_path):
-        # Load the decision tree model
-        with open(model_path, 'rb') as file:
-            self.model = pickle.load(file)
-            print(f"Loaded: {model_path}")
+    def load_models(self, model_path):
+        if "E1." in model_path:
+            # Load the decision tree model
+            with open(model_path, 'rb') as file:
+                self.model = pickle.load(file)
+        else:
+            # Load NN models
+            self.model = load_model(model_path)
+        print(f"Loaded: {model_path}")
         
     def recvall(self, n):
         """Helper function to receive exactly n bytes."""
@@ -70,7 +77,7 @@ class JetsonXavierServer:
             
             # Deserialize the data
             data_row = pickle.loads(packet_raw)
-            print(f">>> [Rx] Received data: {data_row}")
+            #print(f">>> [Rx] Received data: {data_row}")
             return np.array(data_row)
         
         except (socket.timeout, ConnectionResetError, EOFError, pickle.UnpicklingError) as e:
@@ -82,8 +89,6 @@ class JetsonXavierServer:
             # Serialize the data
             serialized_data = pickle.dumps(data)
             msg = struct.pack('>I', len(serialized_data)) + serialized_data
-            print(f">>> [Tx] Serialized data size: {len(serialized_data)} bytes")
-            print(f">>> [Tx] Sent data: {data}")
             self.conn.sendall(msg)  
         except (socket.timeout, ConnectionResetError, EOFError) as e:
             print(f">>> [Tx] Error sending data: {e} <<<")
@@ -91,49 +96,49 @@ class JetsonXavierServer:
 
     def handle_client(self):
         
-        # Esperar a recibir el nombre del archivo antes de procesar datos
-        first_msg = self.rx_process_data()
-
-        if isinstance(first_msg, dict) and "file_name" in first_msg:
-            file_name = first_msg["file_name"]
-            print(f">>> [Rx] File name received from client: {file_name}")
-        else:
-            print(">>> [Rx] Expected file name not received. Exiting.")
-            return
-
         with open(self.csv_file, "w") as file:
             csv_writer = csv.DictWriter(file, self.fieldnames)
             csv_writer.writeheader()
 
-        while True:
-            
-            row = self.rx_process_data()
+        times = (-1) * np.ones(shape=(117177,))
+        idx = 0
 
+        while True:
+            row = self.rx_process_data()
             if row is None:
-                print(">>> [Rx] No more data. Closing connection.")
                 break
 
-            if not isinstance(row, (np.ndarray, list)):
-                print(">>> [Rx] Invalid data type. Skipping.")
-                continue
-
-            # print(f" >>> [Rx] Row to run model prediction: {row}")
-            data_row = row.reshape(1,-1)
-
-            start_time = time.time()
-            prediction = self.model.predict(data_row)
-            end_time = time.time()
+            if 'E1.' in self.csv_file:
+                data_row = row.reshape(1,-1)
+                start_time = time.time()
+                prediction = self.model.predict(data_row)
+                end_time = time.time()
+            else:
+                data_row = tf.expand_dims(row, axis=0)
+                data_row = tf.expand_dims(data_row, axis=-1)
+                start_time = time.time()
+                prediction = self.model.predict(data_row, verbose=0)
+                end_time = time.time()
+                K.clear_session()
+                if "C3" in self.csv_file:
+                    prediction = (prediction > 0.5).astype(int).flatten()
+                else:
+                    prediction = np.argmax(prediction, axis=-1)
 
             pred_value = prediction[0] if hasattr(prediction, '__getitem__') else prediction
-            print(f" >>> [Rx] Prediction: {prediction}")
-            print(f" >>> [Rx] Prediction time: {end_time - start_time:.4f} seconds")
-
+            
             self.tx_process_data(pred_value)
 
             time_pred = end_time - start_time
-            data = [time_pred, pred_value]
+            #data = [time_pred, pred_value]
 
-            self.write_data_file(data)
+            times[idx] = time_pred
+
+            #self.write_data_file(data)
+            idx += 1
+        
+        print('received records: ', idx)
+        print('average prediction time: ',np.mean(times))
 
     def write_data_file(self, data):
         with open(self.csv_file, "a") as file:

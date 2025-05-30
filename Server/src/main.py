@@ -12,8 +12,8 @@ def main():
     server.start()
 
     # Load model
-    model_path = "models/model_E1.{}__results.pkl_class{}.pkl"
-    server.load_model(model_path.format(NUM_EXP, NUM_CLASS))
+    model_path = "models/model_E{}.{}__results.pkl_class{}.pkl"
+    server.load_models(model_path.format(NUM_EXP, NUM_TEST, NUM_CLASS))
 
     # Handle client connections
     server.handle_client()

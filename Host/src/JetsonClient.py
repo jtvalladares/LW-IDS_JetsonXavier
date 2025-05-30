@@ -124,12 +124,12 @@ class JetsonXavierClient:
 
         pred_accuracy, other_accuracy = self.compute_metrics(real_labels, self.predictions, other_predictions)
 
-        print(f"--- Mean Time: {np.mean(self.times):.4f} seconds ---")
+        print(f"--- Mean Time: {np.mean(self.times):.6f} seconds ---")
         print(f"--- Time Deviation: {np.std(self.times):.4f} seconds ---")
         print(f"--- Sent Records: {self.sent_records} ---")
         print(f"--- Received Records: {self.received_records} ---")
 
-        self.log_times_to_txt(pred_accuracy, other_accuracy, exp_params)
+        #self.log_times_to_txt(pred_accuracy, other_accuracy, exp_params)
         self.close()
                     
     def compute_metrics(self, real_labels, predictions, other_predictions):
