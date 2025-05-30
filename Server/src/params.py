@@ -1,7 +1,7 @@
 import os 
 
 IP_HOST = os.getenv("IP_HOST", "10.8.33.137")
-PORT_NUM = int(os.getenv("PORT_NAME", 5000))
+PORT_NUM = int(os.getenv("PORT_NAME", 7632))
 
 NUM_MODELS = int(os.getenv("NUM_MODELS", 4))
 NUM_CLASSES = int(os.getenv("NUM_CLASSES", 3))

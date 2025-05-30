@@ -4,6 +4,7 @@ import time
 import struct
 import csv
 import numpy as np
+import os
 import tensorflow as tf
 from tensorflow.keras.models import load_model
 import tensorflow.keras.backend as K
@@ -44,11 +45,36 @@ class JetsonXavierServer:
     def load_models(self, model_path):
         if "E1." in model_path:
             # Load the decision tree model
-            with open(model_path, 'rb') as file:
+            with open(model_path + '.pkl', 'rb') as file:
                 self.model = pickle.load(file)
         else:
-            # Load NN models
-            self.model = load_model(model_path)
+            # Convert and load TFLite model
+            h5_path = model_path + '.h5'
+            tflite_path = model_path + '.tflite'
+            try:
+                # Convert only if .tflite doesn't exist yet
+                if not os.path.exists(tflite_path):
+                    keras_model = load_model(h5_path)
+                    converter = tf.lite.TFLiteConverter.from_keras_model(keras_model)
+                    tflite_model = converter.convert()
+
+                    with open(tflite_path, 'wb') as f:
+                        f.write(tflite_model)
+                    print(f"Model converted to TFLite: {tflite_path}")
+
+                # Load the TFLite model
+                self.interpreter = tf.lite.Interpreter(model_path=tflite_path)
+                self.interpreter.allocate_tensors()
+
+                # Store input/output details
+                self.input_details = self.interpreter.get_input_details()
+                self.output_details = self.interpreter.get_output_details()
+
+                print(f"Loaded TFLite model: {tflite_path}")
+
+            except Exception as e:
+                print(f"Error loading/converting model: {e}")
+
         print(f"Loaded: {model_path}")
         
     def recvall(self, n):
@@ -114,16 +140,28 @@ class JetsonXavierServer:
                 prediction = self.model.predict(data_row)
                 end_time = time.time()
             else:
-                data_row = tf.expand_dims(row, axis=0)
-                data_row = tf.expand_dims(data_row, axis=-1)
-                start_time = time.time()
-                prediction = self.model.predict(data_row, verbose=0)
-                end_time = time.time()
-                K.clear_session()
-                if "C3" in self.csv_file:
-                    prediction = (prediction > 0.5).astype(int).flatten()
+                # TensorFlow Lite prediction
+                data_row = row.astype(np.float32)  # TFLite usually needs float32
+
+                expected_shape = self.input_details[0]['shape']
+                if len(expected_shape) == 2:
+                    data_row = np.expand_dims(data_row, axis=0)
+                elif len(expected_shape) == 3:
+                    data_row = np.expand_dims(data_row, axis=0)
+                    data_row = np.expand_dims(data_row, axis=-1)
                 else:
-                    prediction = np.argmax(prediction, axis=-1)
+                    raise ValueError(f"Unsupported input shape: {expected_shape}")
+
+                start_time = time.time()
+                self.interpreter.set_tensor(self.input_details[0]['index'], data_row)
+                self.interpreter.invoke()
+                output_data = self.interpreter.get_tensor(self.output_details[0]['index'])
+                end_time = time.time()
+
+                if "C3" in self.csv_file:
+                    prediction = (output_data > 0.5).astype(int).flatten()
+                else:
+                    prediction = np.argmax(output_data, axis=-1)
 
             pred_value = prediction[0] if hasattr(prediction, '__getitem__') else prediction
             
@@ -138,8 +176,7 @@ class JetsonXavierServer:
             idx += 1
         
         print('received records: ', idx)
-        print('average prediction time: ',np.mean(times))
-
+        print(f'average prediction time: {np.mean(times):.6f}')
     def write_data_file(self, data):
         with open(self.csv_file, "a") as file:
             csv_writer = csv.DictWriter(file, self.fieldnames)
