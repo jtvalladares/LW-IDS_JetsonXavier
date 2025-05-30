@@ -11,7 +11,7 @@ def main():
     client.connect()
 
     # Load test files
-    test_path = "test_sets/F{}.{}__results.pkl_class{}_test.npy"
+    test_path = "test_sets/E{}.{}__results.pkl_class{}_test.npy"
     client.load_test_file(test_path.format(NUM_EXP, NUM_TEST, NUM_CLASS))
     client.tx_rx()
     

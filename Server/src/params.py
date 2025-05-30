@@ -1,6 +1,6 @@
 import os 
 
-IP_HOST = os.getenv("IP_HOST", "10.8.33.137")
+IP_HOST = os.getenv("IP_HOST", "10.8.33.129")
 PORT_NUM = int(os.getenv("PORT_NAME", 7632))
 
 NUM_MODELS = int(os.getenv("NUM_MODELS", 4))

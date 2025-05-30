@@ -98,11 +98,6 @@ class JetsonXavierClient:
         # Delete last two columns
         data = data[:, :-2] 
 
-        # Send test file name to select model in server
-        file_name = self.test_path.split('/')[-1]
-        self.tx_process_data({"file_name": file_name})
-        # print(f">>> [Tx] Sent file name: {file_name}")
-
         for reg in data:
             
             start_time = time.time()

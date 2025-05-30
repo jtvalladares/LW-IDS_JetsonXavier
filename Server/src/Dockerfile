@@ -1,5 +1,11 @@
 # Use the NVIDIA L4T TensorFlow base image
-FROM nvcr.io/nvidia/l4t-tensorflow:r35.3.1-tf2.11-py3
+
+# jetson xavier:
+# FROM nvcr.io/nvidia/l4t-tensorflow:r35.3.1-tf2.11-py3 
+
+# jetson nano:
+FROM nvcr.io/nvidia/l4t-tensorflow:r32.7.1-tf2.7-py3 
+
 #FROM nvcr.io/nvidia/l4t-ml:r35.2.1-py3
 # Set the working directory
 WORKDIR /workspace
