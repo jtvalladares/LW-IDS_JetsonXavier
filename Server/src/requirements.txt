@@ -1,7 +1,16 @@
+# Versión de numpy compatible con JetPack 4.x / Jetson Nano
 numpy==1.19.5
-python-dateutil==2.9.0.post0
-pytz==2024.2
-scikit-learn==0.24.2
+
+# Scikit-learn para modelos de Árboles de Decisión
+scikit-learn==0.22.2.post1
+
+# SciPy requerido por scikit-learn
 scipy==1.5.4
-six==1.17.0
-threadpoolctl==3.1.0
+
+# TensorFlow Lite ya viene con la imagen base (tf 2.7)
+# No hace falta instalar tensorflow si ya estás usando la imagen nvcr.io/nvidia/l4t-tensorflow
+
+# Para trabajar con archivos pickle
+# No necesitas instalar `pickle` explícitamente; es parte de la biblioteca estándar
+
+# Si usas sockets personalizados, tampoco necesitas instalar socket (es estándar)

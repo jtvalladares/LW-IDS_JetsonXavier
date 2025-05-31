@@ -1,19 +1,23 @@
-FROM nvcr.io/nvidia/l4t-tensorflow:r32.7.1-tf2.7-py3 
+# Imagen base para Jetson Nano con TensorFlow 2.7
+FROM nvcr.io/nvidia/l4t-tensorflow:r32.7.1-tf2.7-py3
 
+# Establece el directorio de trabajo
 WORKDIR /workspace
 
+# Instala dependencias del sistema necesarias
 RUN apt-get update && \
     apt-get install -y \
-    build-essential \ 
+    build-essential \
     python3-pip \
     libpython3-dev \
-    python3-sklearn \
-    python3-sklearn-lib \
     && rm -rf /var/lib/apt/lists/*
 
-COPY . /workspace 
+# Copia el contenido del proyecto al contenedor
+COPY . /workspace
 
+# Instala pip y las dependencias Python necesarias
 RUN pip3 install --upgrade pip && \
-    pip3 install --no-cache-dir -r requirements.txt 
+    pip3 install --no-cache-dir -r requirements.txt
 
+# Comando por defecto al iniciar el contenedor
 CMD ["python3", "main.py"]
