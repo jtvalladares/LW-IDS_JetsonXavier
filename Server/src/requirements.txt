@@ -14,4 +14,3 @@ packaging
 h5py==3.1.0
 testresources
 setuptools==59.6.0
-scikit-learn==0.24.2
