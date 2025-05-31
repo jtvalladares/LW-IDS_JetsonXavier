@@ -116,6 +116,10 @@ class LightCardServer:
             #data = [time_pred, pred_value]
 
             #self.write_data_file(data)
+        
+        print('received records: ', idx)
+        print(f'average prediction time: {np.mean(times):.6f}')
+    
 
     def write_data_file(self, data):
         with open(self.csv_file, "a") as file:
