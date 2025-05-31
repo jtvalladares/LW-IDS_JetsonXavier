@@ -70,7 +70,6 @@ class LightCardServer:
             
             # Deserialize the data
             data_row = pickle.loads(packet_raw)
-            print(f">>> [Rx] Received data: {data_row}")
             return np.array(data_row)
         
         except (socket.timeout, ConnectionResetError, EOFError, pickle.UnpicklingError) as e:
