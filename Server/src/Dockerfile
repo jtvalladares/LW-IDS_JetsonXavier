@@ -4,6 +4,8 @@ FROM nvcr.io/nvidia/l4t-tensorflow:r32.7.1-tf2.7-py3
 # Establece el directorio de trabajo
 WORKDIR /workspace
 
+ENV LD_PRELOAD=/usr/lib/aarch64-linux-gnu/libgomp.so.1
+
 # Instala dependencias del sistema necesarias
 RUN apt-get update && \
     apt-get install -y \
