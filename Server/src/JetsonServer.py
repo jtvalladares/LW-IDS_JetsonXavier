@@ -113,6 +113,7 @@ class LightCardServer:
 
             time_pred = end_time - start_time
             times[idx] = time_pred
+            idx += 1
             #data = [time_pred, pred_value]
 
             #self.write_data_file(data)
