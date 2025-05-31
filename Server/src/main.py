@@ -12,7 +12,7 @@ def main():
     server.start()
 
     # Load model
-    model_path = "models/model_F{}.{}__results.pkl_class{}"
+    model_path = "models/model_F{}.{}__results.pkl_class{}.pkl"
     server.load_model(model_path.format(NUM_EXP, NUM_TEST, NUM_CLASS))
 
     # Handle client connections
