@@ -4,12 +4,8 @@ import time
 import struct
 import csv
 import numpy as np
-import os
-import tensorflow as tf
-from tensorflow.keras.models import load_model
-import tensorflow.keras.backend as K
 
-class JetsonXavierServer: 
+class LightCardServer: 
 
     def __init__(self, host, port, storage_file):
         self.host = host
@@ -42,40 +38,11 @@ class JetsonXavierServer:
             self.server_socket.close()
         print("Connection closed.")
 
-    def load_models(self, model_path):
-        if "E1." in model_path:
-            # Load the decision tree model
-            with open(model_path + '.pkl', 'rb') as file:
-                self.model = pickle.load(file)
-        else:
-            # Convert and load TFLite model
-            h5_path = model_path + '.h5'
-            tflite_path = model_path + '.tflite'
-            try:
-                # Convert only if .tflite doesn't exist yet
-                if not os.path.exists(tflite_path):
-                    keras_model = load_model(h5_path)
-                    converter = tf.lite.TFLiteConverter.from_keras_model(keras_model)
-                    tflite_model = converter.convert()
-
-                    with open(tflite_path, 'wb') as f:
-                        f.write(tflite_model)
-                    print(f"Model converted to TFLite: {tflite_path}")
-
-                # Load the TFLite model
-                self.interpreter = tf.lite.Interpreter(model_path=tflite_path)
-                self.interpreter.allocate_tensors()
-
-                # Store input/output details
-                self.input_details = self.interpreter.get_input_details()
-                self.output_details = self.interpreter.get_output_details()
-
-                print(f"Loaded TFLite model: {tflite_path}")
-
-            except Exception as e:
-                print(f"Error loading/converting model: {e}")
-
-        print(f"Loaded: {model_path}")
+    def load_model(self, model_path):
+        # Load the decision tree model
+        with open(model_path, 'rb') as file:
+            self.model = pickle.load(file)
+            print(f"Loaded: {model_path}")
         
     def recvall(self, n):
         """Helper function to receive exactly n bytes."""
@@ -103,7 +70,7 @@ class JetsonXavierServer:
             
             # Deserialize the data
             data_row = pickle.loads(packet_raw)
-            #print(f">>> [Rx] Received data: {data_row}")
+            print(f">>> [Rx] Received data: {data_row}")
             return np.array(data_row)
         
         except (socket.timeout, ConnectionResetError, EOFError, pickle.UnpicklingError) as e:
@@ -121,7 +88,7 @@ class JetsonXavierServer:
 
 
     def handle_client(self):
-        
+
         with open(self.csv_file, "w") as file:
             csv_writer = csv.DictWriter(file, self.fieldnames)
             csv_writer.writeheader()
@@ -130,53 +97,27 @@ class JetsonXavierServer:
         idx = 0
 
         while True:
+            
             row = self.rx_process_data()
             if row is None:
                 break
 
-            if 'E1.' in self.csv_file:
-                data_row = row.reshape(1,-1)
-                start_time = time.time()
-                prediction = self.model.predict(data_row)
-                end_time = time.time()
-            else:
-                # TensorFlow Lite prediction
-                data_row = row.astype(np.float32)  # TFLite usually needs float32
+            data_row = row.reshape(1,-1)
 
-                expected_shape = self.input_details[0]['shape']
-                if len(expected_shape) == 2:
-                    data_row = np.expand_dims(data_row, axis=0)
-                elif len(expected_shape) == 3:
-                    data_row = np.expand_dims(data_row, axis=0)
-                    data_row = np.expand_dims(data_row, axis=-1)
-                else:
-                    raise ValueError(f"Unsupported input shape: {expected_shape}")
-
-                start_time = time.time()
-                self.interpreter.set_tensor(self.input_details[0]['index'], data_row)
-                self.interpreter.invoke()
-                output_data = self.interpreter.get_tensor(self.output_details[0]['index'])
-                end_time = time.time()
-
-                if "C3" in self.csv_file:
-                    prediction = (output_data > 0.5).astype(int).flatten()
-                else:
-                    prediction = np.argmax(output_data, axis=-1)
+            start_time = time.time()
+            prediction = self.model.predict(data_row)
+            end_time = time.time()
 
             pred_value = prediction[0] if hasattr(prediction, '__getitem__') else prediction
             
             self.tx_process_data(pred_value)
 
             time_pred = end_time - start_time
+            times[idx] = time_pred
             #data = [time_pred, pred_value]
 
-            times[idx] = time_pred
-
             #self.write_data_file(data)
-            idx += 1
-        
-        print('received records: ', idx)
-        print(f'average prediction time: {np.mean(times):.6f}')
+
     def write_data_file(self, data):
         with open(self.csv_file, "a") as file:
             csv_writer = csv.DictWriter(file, self.fieldnames)
